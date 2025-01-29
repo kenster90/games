@@ -104,8 +104,8 @@ window.buyMachine = function(animalType) {
 
         gameState.machines[animalType] = {
             level: currentTier,
-            intervalId: setInterval(() => autoSell(animalType), machineData.interval),
-            ...machineData
+            interval: machineData.interval,
+            intervalId: setInterval(() => autoSell(animalType), machineData.interval)
         };
 
         gameState.machineLevels[animalType]++;
@@ -176,7 +176,6 @@ function updateDisplay() {
     updateAutomationDisplay();
     updateStatsDisplay();
     updateAchievementsDisplay();
-    checkAchievements();
 }
 
 function updateCoinsDisplay() {
@@ -257,33 +256,51 @@ function updateAchievementsDisplay() {
 
 // Save/Load System
 function saveGame() {
-    // Strip interval IDs before saving
     const saveData = {
         ...gameState,
         machines: Object.fromEntries(
             Object.entries(gameState.machines).map(([type, machine]) => [
                 type, 
-                { ...machine, intervalId: undefined }
+                {
+                    level: machine.level,
+                    interval: machine.interval
+                }
             ])
         )
     };
     localStorage.setItem('farmGameSave', JSON.stringify(saveData));
 }
 
-// Improve the loadGame function
 function loadGame() {
     const saved = localStorage.getItem('farmGameSave');
     if (saved) {
         const loaded = JSON.parse(saved);
         
-        // Restore basic state
         gameState = {
             ...gameState,
             ...loaded,
+            animals: { 
+                ...gameState.animals,
+                ...loaded.animals
+            },
+            stats: {
+                ...gameState.stats,
+                ...loaded.stats
+            },
+            achievements: {
+                ...gameState.achievements,
+                ...loaded.achievements
+            },
+            machineLevels: {
+                ...gameState.machineLevels,
+                ...loaded.machineLevels
+            },
+            usedCodes: [
+                ...(loaded.usedCodes || [])
+            ],
             machines: {}
         };
 
-        // Restore machines with new intervals
         Object.entries(loaded.machines || {}).forEach(([type, machine]) => {
             gameState.machines[type] = {
                 ...machine,
@@ -307,12 +324,9 @@ function checkAchievements() {
 function initGame() {
     loadGame();
     setInterval(saveGame, 30000);
+    window.addEventListener('beforeunload', saveGame);
+    checkAchievements();
     updateDisplay();
 }
 
 window.onload = initGame;
-
-// Add beforeunload handler
-window.addEventListener('beforeunload', () => {
-    saveGame();
-});
