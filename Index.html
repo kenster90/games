@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="codes.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="coins-display">💰 Coins: <span id="coins">0</span></div>
+
+        <div class="redeem-section">
+            <h2>Redeem Code 🎁</h2>
+            <input type="text" id="redeem-code" placeholder="Enter code">
+            <button onclick="redeemCode()">Redeem</button>
+            <div id="redeem-message"></div>
+        </div>
+
+        <div class="left-column">
+            <div class="farm-section">
+                <h2>Your Farm 🚜</h2>
+                <div id="animals-list"></div>
+            </div>
+
+            <div class="stats-section">
+                <h2>Statistics 📊</h2>
+                <div id="stats-list"></div>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="shop-section">
+                <h2>Animal Shop 🛒</h2>
+                <div id="shop-items"></div>
+            </div>
+
+            <div class="automation-section">
+                <h2>Automation Factory 🤖</h2>
+                <div id="automation-items"></div>
+                <h3>Active Machines ⚙️</h3>
+                <div id="active-machines"></div>
+            </div>
+
+            <div class="achievements-section">
+                <h2>Achievements 🏆</h2>
+                <div id="achievements-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
