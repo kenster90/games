@@ -257,20 +257,33 @@ function updateAchievementsDisplay() {
 
 // Save/Load System
 function saveGame() {
-    localStorage.setItem('farmGameSave', JSON.stringify(gameState));
+    // Strip interval IDs before saving
+    const saveData = {
+        ...gameState,
+        machines: Object.fromEntries(
+            Object.entries(gameState.machines).map(([type, machine]) => [
+                type, 
+                { ...machine, intervalId: undefined }
+            ])
+        )
+    };
+    localStorage.setItem('farmGameSave', JSON.stringify(saveData));
 }
 
+// Improve the loadGame function
 function loadGame() {
     const saved = localStorage.getItem('farmGameSave');
     if (saved) {
         const loaded = JSON.parse(saved);
+        
+        // Restore basic state
         gameState = {
             ...gameState,
             ...loaded,
             machines: {}
         };
-        
-        // Restart machine intervals
+
+        // Restore machines with new intervals
         Object.entries(loaded.machines || {}).forEach(([type, machine]) => {
             gameState.machines[type] = {
                 ...machine,
@@ -298,3 +311,8 @@ function initGame() {
 }
 
 window.onload = initGame;
+
+// Add beforeunload handler
+window.addEventListener('beforeunload', () => {
+    saveGame();
+});
