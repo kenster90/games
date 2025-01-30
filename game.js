@@ -138,15 +138,33 @@ window.updateLeaderboardDisplay = async function() {
     
     try {
         leaderboardList.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
-        const response = await fetch(`${LEADERBOARD_API}/leaderboard?limit=${entriesToShow}`);
+        
+        const response = await fetch(`${LEADERBOARD_API}/leaderboard?limit=100`);
         const leaderboard = await response.json();
         
-        leaderboardList.innerHTML = leaderboard.map((entry, index) => `
+        // Client-side deduplication (safety net)
+        const uniqueEntries = leaderboard.reduce((acc, current) => {
+            const existing = acc.find(entry => entry.name === current.name);
+            if (!existing || current.coins > existing.coins) {
+                if (existing) acc.splice(acc.indexOf(existing), 1);
+                acc.push(current);
+            }
+            return acc;
+        }, []);
+
+        // Sort and limit entries
+        const sortedEntries = uniqueEntries
+            .sort((a, b) => b.coins - a.coins)
+            .slice(0, entriesToShow);
+
+        // Update display
+        leaderboardList.innerHTML = sortedEntries.map((entry, index) => `
             <div class="leaderboard-entry ${entry.name === gameState.playerName ? 'leaderboard-you' : ''}">
                 <span>${index + 1}. ${entry.name}</span>
                 <span>${formatCoins(entry.coins)}</span>
             </div>
         `).join('');
+        
     } catch (error) {
         leaderboardList.innerHTML = '<div class="leaderboard-loading">Error loading leaderboard</div>';
         console.error('Leaderboard error:', error);
