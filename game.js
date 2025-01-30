@@ -17,38 +17,37 @@ let gameState = {
         cow: 1,
         sheep: 1
     },
-    usedCodes: []
+    usedCodes: [],
+    playerName: ''
 };
 
-// Constants
+// Constants (Replace with your endpoints)
+const LEADERBOARD_API = 'https://mines-hjkm.onrender.com';
 const SHOP_ITEMS = [
     { name: 'Chicken', price: 10, product: 'egg', productValue: 5 },
     { name: 'Cow', price: 50, product: 'milk', productValue: 20 },
     { name: 'Sheep', price: 30, product: 'wool', productValue: 15 }
 ];
-
 const AUTOMATION_ITEMS = [
     { type: 'chicken', basePrice: 100 },
     { type: 'cow', basePrice: 500 },
     { type: 'sheep', basePrice: 300 }
 ];
-
 const AUTOMATION_TIERS = [
     { interval: 15000, priceMultiplier: 1 },
     { interval: 10000, priceMultiplier: 2 },
     { interval: 5000, priceMultiplier: 5 }
 ];
-
 const ACHIEVEMENTS = [
     { id: 'first_machine', name: 'First Automation', condition: s => s.stats.totalMachinesBought >= 1 },
     { id: 'millionaire', name: 'Coin Millionaire', condition: s => s.coins >= 1000 },
     { id: 'factory_owner', name: 'Factory Owner', condition: s => Object.keys(s.machines).length >= 3 }
 ];
 
-// Formatting Function
+// Formatting Utilities
 function formatCoins(amount) {
-    if (amount >= 1000000) return (amount/1000000).toFixed(1) + 'm';
-    if (amount >= 1000) return (amount/1000).toFixed(1) + 'k';
+    if (amount >= 1e6) return `${(amount/1e6).toFixed(1)}M`;
+    if (amount >= 1e3) return `${(amount/1e3).toFixed(1)}K`;
     return amount;
 }
 
@@ -62,6 +61,7 @@ window.sellProduct = function(animalType) {
         gameState.stats.totalManualSales++;
         createCoinAnimation(event.clientX, event.clientY, earnings);
         updateDisplay();
+        submitScore();
     }
 };
 
@@ -81,6 +81,7 @@ window.buyAnimal = function(animalType, price) {
         gameState.animals[animalType].count++;
         gameState.stats.totalAnimalsBought++;
         updateDisplay();
+        submitScore();
     } else {
         alert('Not enough coins!');
     }
@@ -110,44 +111,49 @@ window.buyMachine = function(animalType) {
 
         gameState.machineLevels[animalType]++;
         updateDisplay();
+        submitScore();
     }
 };
 
-// Redemption System
-window.redeemCode = function() {
-    const codeInput = document.getElementById('redeem-code');
-    const code = codeInput.value.trim().toUpperCase();
-    const messageEl = document.getElementById('redeem-message');
+// Leaderboard Functions
+async function submitScore() {
+    try {
+        const response = await fetch(`${LEADERBOARD_API}/submit-score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: gameState.playerName,
+                coins: gameState.coins
+            })
+        });
+        if (!response.ok) throw new Error('Failed to submit score');
+    } catch (error) {
+        console.error('Score submission error:', error);
+    }
+}
+
+window.updateLeaderboardDisplay = async function() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    const entriesToShow = document.getElementById('leaderboard-entries').value || 10;
     
-    if (!code) {
-        messageEl.textContent = "Please enter a code";
-        messageEl.style.color = "red";
-        return;
+    try {
+        leaderboardList.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
+        const response = await fetch(`${LEADERBOARD_API}/leaderboard?limit=${entriesToShow}`);
+        const leaderboard = await response.json();
+        
+        leaderboardList.innerHTML = leaderboard.map((entry, index) => `
+            <div class="leaderboard-entry ${entry.name === gameState.playerName ? 'leaderboard-you' : ''}">
+                <span>${index + 1}. ${entry.name}</span>
+                <span>${formatCoins(entry.coins)}</span>
+            </div>
+        `).join('');
+    } catch (error) {
+        leaderboardList.innerHTML = '<div class="leaderboard-loading">Error loading leaderboard</div>';
+        console.error('Leaderboard error:', error);
     }
-
-    const redemption = REDEMPTION_CODES[code];
-    
-    if (!redemption) {
-        messageEl.textContent = "Invalid code!";
-        messageEl.style.color = "red";
-        return;
-    }
-
-    if (gameState.usedCodes.includes(code)) {
-        messageEl.textContent = "Code already used!";
-        messageEl.style.color = "red";
-        return;
-    }
-
-    gameState.coins += redemption.amount;
-    gameState.usedCodes.push(code);
-    messageEl.textContent = `Success! Received ${formatCoins(redemption.amount)} coins!`;
-    messageEl.style.color = "green";
-    codeInput.value = "";
-    updateDisplay();
 };
 
-// Helper Functions
+// Game Utilities
 function autoSell(animalType) {
     const animal = gameState.animals[animalType];
     if (animal?.count > 0) {
@@ -198,7 +204,7 @@ function updateShopDisplay() {
     const shopItemsDiv = document.getElementById('shop-items');
     shopItemsDiv.innerHTML = SHOP_ITEMS.map(item => `
         <div class="shop-item">
-            <h3>${item.name} (${formatCoins(item.price)} coins)</h3>
+            <h3>${item.name} (${formatCoins(item.price)})</h3>
             <button onclick="buyAnimal('${item.name.toLowerCase()}', ${item.price})">
                 Buy ${item.name}
             </button>
@@ -216,9 +222,9 @@ function updateAutomationDisplay() {
         return `
             <div class="shop-item">
                 <h3>${item.type.toUpperCase()} Auto-Seller Tier ${currentTier}</h3>
-                <p>Price: ${formatCoins(price)} coins</p>
+                <p>Price: ${formatCoins(price)}</p>
                 <p>Sells every ${machineData.interval/1000}s</p>
-                <button onclick="buyMachine('${item.type}')">
+                <button onclick="buyMachine('${item.type}')" ${currentTier >= AUTOMATION_TIERS.length ? 'disabled' : ''}>
                     ${currentTier < AUTOMATION_TIERS.length ? 'Upgrade' : 'Max Level'}
                 </button>
             </div>
@@ -237,10 +243,10 @@ function updateAutomationDisplay() {
 function updateStatsDisplay() {
     const statsDiv = document.getElementById('stats-list');
     statsDiv.innerHTML = `
-        <p>Total Coins Earned: ${formatCoins(gameState.stats.totalCoinsEarned)}</p>
-        <p>Total Animals Bought: ${gameState.stats.totalAnimalsBought}</p>
-        <p>Total Machines Bought: ${gameState.stats.totalMachinesBought}</p>
-        <p>Total Manual Sales: ${gameState.stats.totalManualSales}</p>
+        <p>Total Earned: ${formatCoins(gameState.stats.totalCoinsEarned)}</p>
+        <p>Animals Bought: ${gameState.stats.totalAnimalsBought}</p>
+        <p>Machines Bought: ${gameState.stats.totalMachinesBought}</p>
+        <p>Manual Sales: ${gameState.stats.totalManualSales}</p>
     `;
 }
 
@@ -249,7 +255,7 @@ function updateAchievementsDisplay() {
     achievementsDiv.innerHTML = ACHIEVEMENTS.map(achievement => `
         <div class="achievement-card ${gameState.achievements[achievement.id] ? 'achievement-unlocked' : ''}">
             <h4>${achievement.name}</h4>
-            <p>${gameState.achievements[achievement.id] ? 'Unlocked!' : 'Locked'}</p>
+            <p>${gameState.achievements[achievement.id] ? 'Unlocked! 🎉' : 'Locked 🔒'}</p>
         </div>
     `).join('');
 }
@@ -261,10 +267,7 @@ function saveGame() {
         machines: Object.fromEntries(
             Object.entries(gameState.machines).map(([type, machine]) => [
                 type, 
-                {
-                    level: machine.level,
-                    interval: machine.interval
-                }
+                { level: machine.level, interval: machine.interval }
             ])
         )
     };
@@ -275,29 +278,9 @@ function loadGame() {
     const saved = localStorage.getItem('farmGameSave');
     if (saved) {
         const loaded = JSON.parse(saved);
-        
         gameState = {
             ...gameState,
             ...loaded,
-            animals: { 
-                ...gameState.animals,
-                ...loaded.animals
-            },
-            stats: {
-                ...gameState.stats,
-                ...loaded.stats
-            },
-            achievements: {
-                ...gameState.achievements,
-                ...loaded.achievements
-            },
-            machineLevels: {
-                ...gameState.machineLevels,
-                ...loaded.machineLevels
-            },
-            usedCodes: [
-                ...(loaded.usedCodes || [])
-            ],
             machines: {}
         };
 
@@ -320,13 +303,20 @@ function checkAchievements() {
     });
 }
 
-// Initialize Game
+// Initialization
 function initGame() {
     loadGame();
+    
+    if (!gameState.playerName) {
+        gameState.playerName = prompt("Welcome to Farm Game!\nEnter your player name:") || 'Farmer';
+        saveGame();
+    }
+
     setInterval(saveGame, 30000);
     window.addEventListener('beforeunload', saveGame);
     checkAchievements();
     updateDisplay();
+    updateLeaderboardDisplay();
 }
 
 window.onload = initGame;

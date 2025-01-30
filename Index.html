@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="coins-display">💰 Coins: <span id="coins">0</span></div>
+
+        <!-- Redeem Section -->
+        <div class="redeem-section">
+            <h2>Redeem Code 🎁</h2>
+            <input type="text" id="redeem-code" placeholder="Enter code">
+            <button onclick="redeemCode()">Redeem</button>
+            <div id="redeem-message"></div>
+        </div>
+
+        <div class="left-column">
+            <!-- Farm Section -->
+            <div class="farm-section">
+                <h2>Your Farm 🚜</h2>
+                <div id="animals-list"></div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-section">
+                <h2>Statistics 📊</h2>
+                <div id="stats-list"></div>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <!-- Shops -->
+            <div class="shop-section">
+                <h2>Animal Shop 🛒</h2>
+                <div id="shop-items"></div>
+            </div>
+
+            <!-- Automation -->
+            <div class="automation-section">
+                <h2>Automation Factory 🤖</h2>
+                <div id="automation-items"></div>
+                <h3>Active Machines ⚙️</h3>
+                <div id="active-machines"></div>
+            </div>
+
+            <!-- Achievements -->
+            <div class="achievements-section">
+                <h2>Achievements 🏆</h2>
+                <div id="achievements-list"></div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="leaderboard-section">
+            <h2>Global Leaderboard 🌍</h2>
+            <div class="leaderboard-controls">
+                <select id="leaderboard-entries" onchange="updateLeaderboardDisplay()">
+                    <option value="10">Top 10</option>
+                    <option value="25">Top 25</option>
+                    <option value="50">Top 50</option>
+                </select>
+                <button onclick="updateLeaderboardDisplay()">Refresh</button>
+            </div>
+            <div id="leaderboard-list">
+                <div class="leaderboard-loading">Loading leaderboard...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="codes.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
